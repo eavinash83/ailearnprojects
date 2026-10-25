@@ -49,3 +49,11 @@ Rules shared by both sides live in `shared/domain.js` (airports, cabins, limits,
 ## Next steps
 Email verification + password reset (needs an email provider), migrations (node-pg-migrate/Drizzle),
 payments + email confirmations (after COMMIT, never inside the transaction), seat maps, round trips.
+
+## Deployment
+- Render web service `skybook` (Docker, free, Singapore): https://skybook-3faz.onrender.com, dashboard
+  https://dashboard.render.com/web/srv-dbf396gae00c73ek7qpg. Auto-deploys from `main` of `eavinash83/ailearnprojects`.
+- Env vars live on Render: `DATABASE_URL` (currently the SAME Neon database as local dev, so `npm run db:reset` here would wipe live
+  bookings) and `BETTER_AUTH_SECRET`. The auth base URL comes from `RENDER_EXTERNAL_URL`; set `BETTER_AUTH_URL` when a custom domain is added.
+- Git pushes use a repo-scoped deploy key (`~/.ssh/id_ed25519_skybook`, set via `core.sshCommand`) and the commit email is
+  eavinash1983@gmail.com (repo-local config).

@@ -53,3 +53,10 @@ docker run -p 3000:3000 -e DATABASE_URL="postgresql://..." \
 
 Business rules (passenger limit, booking/cancel windows, taxes, airports) live in `shared/domain.js`. Overselling is
 prevented by locking the flight row inside the booking transaction, so concurrent requests can never exceed capacity.
+
+## Deployed
+
+Live on Render (free plan, Singapore): https://skybook-3faz.onrender.com. The first request after 15 minutes idle takes
+about a minute while the instance wakes. Service `skybook` (`srv-dbf396gae00c73ek7qpg`) builds the Dockerfile from the
+`main` branch of `eavinash83/ailearnprojects` and redeploys on every push. `DATABASE_URL` and `BETTER_AUTH_SECRET` are set
+as environment variables on Render, never in git. It currently shares the dev Neon database.
