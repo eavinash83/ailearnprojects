@@ -11,7 +11,10 @@
     "build": "vite build",
     "start": "node --env-file-if-exists=.env server/index.js",
     "prod": "npm run build && npm start",
-    "db:reset": "node --env-file-if-exists=.env server/db-reset.js"
+    "db:reset": "node --env-file-if-exists=.env server/db-reset.js",
+    "render:create": "node --env-file-if-exists=.env scripts/render.mjs create",
+    "render:deploy": "node --env-file-if-exists=.env scripts/render.mjs deploy",
+    "render:autodeploy": "node --env-file-if-exists=.env scripts/render.mjs autodeploy"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.0",

@@ -56,6 +56,12 @@ prevented by locking the flight row inside the booking transaction, so concurren
 
 ## Deployed
 
+Pushes run CI (`.github/workflows/ci-cd.yml`: install, syntax check, build, Docker build); pushes to `main` then deploy to Render
+through its API, wait for the deploy to go live and smoke-test the public URL (`scripts/render.mjs`). Needs the GitHub repository
+secrets `RENDER_API_KEY` and `RENDER_SERVICE_ID` (`srv-dbf396gae00c73ek7qpg`). To redeploy or roll back run the workflow manually
+(optional commit SHA) or `npm run render:deploy`. Once the secrets exist, turn Render's own push-to-deploy off with
+`npm run render:autodeploy -- off` so each push deploys once.
+
 Live on Render (free plan, Singapore): https://skybook-3faz.onrender.com. The first request after 15 minutes idle takes
 about a minute while the instance wakes. Service `skybook` (`srv-dbf396gae00c73ek7qpg`) builds the Dockerfile from the
 `main` branch of `eavinash83/ailearnprojects` and redeploys on every push. `DATABASE_URL` and `BETTER_AUTH_SECRET` are set

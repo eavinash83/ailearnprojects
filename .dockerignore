@@ -4,3 +4,5 @@ dist
 .git
 *.local
 dev.log
+.github
+scripts

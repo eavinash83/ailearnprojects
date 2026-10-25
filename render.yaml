@@ -9,7 +9,7 @@ services:
     region: singapore # next to the Neon project (ap-southeast-1) to keep queries fast
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
-    autoDeployTrigger: commit
+    autoDeployTrigger: off # GitHub Actions (.github/workflows/ci-cd.yml) deploys after CI passes
     envVars:
       - key: DATABASE_URL
         sync: false # paste the Neon connection string in the dashboard when prompted; never commit it
