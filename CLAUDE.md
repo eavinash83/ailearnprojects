@@ -15,9 +15,16 @@ the original design choices.
 - `npm run build` (Vite into `dist/`), `npm start` (serve API + `dist/`), `npm run prod` (both).
 - `npm run db:reset`: drops `bookings` and `flights`, recreates and reseeds; auth tables survive. **Local `.env` points at the same
   Neon database as the deployed site, so this wipes live bookings.**
-- No tests or linter. Verify with `npm run build`, `node --check server/*.js shared/*.js`, and curl against `/api` (booking routes
-  need a cookie jar from `POST /api/auth/sign-up/email` or `sign-in/email`, and an `Origin` header equal to the app's origin, or
-  Better Auth returns 403).
+- No linter. Verify with `npm run build` and `node --check server/*.js shared/*.js`. Booking routes need a cookie jar from
+  `POST /api/auth/sign-up/email` or `sign-in/email`, and an `Origin` header equal to the app's origin, or Better Auth returns 403.
+- Tests (functional): `npm run test:api` (`node --test`, `tests/api/`) and `npm run test:e2e` (Playwright, `tests/e2e/` has its own
+  `package.json`; run `npm install` there once, then `npx playwright install chromium`). Both start the app on :3200 against the Neon
+  **test branch** from `.env.test` (gitignored; needs `DATABASE_URL` and `BETTER_AUTH_SECRET`) and refuse to run if that URL matches
+  `.env`. Tests create their own users (`t-*@test.local`) and flights (`T-*`) and delete them afterwards. The test server runs with
+  `NODE_ENV=development`, not `test`, because Better Auth skips its Origin/CSRF check when `NODE_ENV=test`.
+- Windows: run `npm run build` from a shell whose path has an upper-case drive letter (`C:\dev\...`). From `c:\dev\...` Vite can bundle
+  one module twice (two `ToastContext`s), so the built app breaks on confirming a booking while `npm run dev` looks fine.
+  `test:e2e` builds from the canonical path itself.
 - Needs Node 22+ (`--env-file-if-exists`); on this machine Node 24 is portable at `%USERPROFILE%\tools\node-v24.22.0-win-x64`.
   Do not run `npm ci` while the dev server is up (Windows file locks leave a half-installed `node_modules`).
 - Required `.env`: `DATABASE_URL` (Neon) and `BETTER_AUTH_SECRET` (32+ chars); the server exits at startup without them.

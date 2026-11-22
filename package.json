@@ -14,7 +14,10 @@
     "db:reset": "node --env-file-if-exists=.env server/db-reset.js",
     "render:create": "node --env-file-if-exists=.env scripts/render.mjs create",
     "render:deploy": "node --env-file-if-exists=.env scripts/render.mjs deploy",
-    "render:autodeploy": "node --env-file-if-exists=.env scripts/render.mjs autodeploy"
+    "render:autodeploy": "node --env-file-if-exists=.env scripts/render.mjs autodeploy",
+    "test:api": "node scripts/test-api.mjs",
+    "test": "npm run test:api && npm run test:e2e",
+    "test:e2e": "node scripts/test-e2e.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.2.0",
