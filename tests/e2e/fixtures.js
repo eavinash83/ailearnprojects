@@ -1,6 +1,6 @@
-import crypto from 'node:crypto';
 import { test as base, expect } from '@playwright/test';
 import { DOMAIN, quote } from '../../shared/domain.js';
+import { userEmail } from '../api/helpers/run.js';
 
 export { expect };
 export const PASSWORD = 'Test-Password-123';
@@ -17,7 +17,7 @@ export const searchUrl = ({ from = 'JFK', to = 'LAX', date, cabin = 'economy', p
 export const test = base.extend({
   /** A new account, already signed in in this browser (sign-up through the real API; cookies land in the page's context). */
   account: async ({ page, baseURL }, use) => {
-    const account = { name: 'Ada Lovelace', email: `t-${crypto.randomBytes(5).toString('hex')}@test.local`, password: PASSWORD };
+    const account = { name: 'Ada Lovelace', email: userEmail(), password: PASSWORD };
     const res = await page.request.post('/api/auth/sign-up/email', {
       data: account,
       headers: { origin: baseURL },

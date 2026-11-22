@@ -1,20 +1,34 @@
 // Test data: users via the real sign-up endpoint, flights via SQL (so tests control seats and departure times).
-import crypto from 'node:crypto';
 import { Pool } from '@neondatabase/serverless';
 import { airport } from '../../../shared/domain.js';
 import { Client } from './client.js';
 import { checkTestDatabase } from './guard.js';
+import { RUN_ID, newFlightId, userEmail } from './run.js';
 
 checkTestDatabase(process.env.DATABASE_URL);
 export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 // Neon closes idle sockets; an unhandled 'error' event would crash the test process.
 pool.on('error', () => {});
+
+// The first connection after the Neon compute has been idle can fail at the WebSocket level (an ErrorEvent, not an Error)
+// while the database wakes up. The statement never ran, so retrying is safe.
+const rawQuery = pool.query.bind(pool);
+const isConnectError = (e) => !(e instanceof Error) || /ECONNRESET|ETIMEDOUT|ECONNREFUSED|terminated|Connection/i.test(e.message);
+pool.query = async (...args) => {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await rawQuery(...args);
+    } catch (e) {
+      if (attempt >= 3 || !isConnectError(e)) throw e;
+      await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+    }
+  }
+};
 export const PASSWORD = 'Test-Password-123';
-const uid = () => crypto.randomBytes(5).toString('hex');
 
 /** A signed-in Client with its own brand-new account. */
 export async function newUser(name = 'Test User') {
-  const email = `t-${uid()}@test.local`;
+  const email = userEmail();
   const c = new Client();
   const res = await c.post('/api/auth/sign-up/email', { email, password: PASSWORD, name });
   if (res.status !== 200) throw new Error(`sign-up failed ${res.status}: ${res.text}`);
@@ -33,7 +47,7 @@ export async function makeFlight({
   economyPrice = 100, businessPrice = 300, minutes = 360, departsAtLocal = null,
   flightNo = `TT${Math.floor(Math.random() * 900 + 100)}`,
 } = {}) {
-  const id = `T-${uid()}`;
+  const id = newFlightId();
   const [o, d] = [airport(origin), airport(destination)];
   // departsAtLocal: 'YYYY-MM-DD HH:MM' in the origin airport's zone (fixed departure); otherwise relative to now.
   const dep = departsAtLocal ? '($7::timestamp AT TIME ZONE $5)' : "(now() + $7::float8 * interval '1 hour')";
@@ -76,9 +90,12 @@ export async function confirmedPax(flightId, cabin) {
   return rows[0].n;
 }
 
-/** Removes everything the tests created (users cascade to their bookings; then test flights). */
+/**
+ * Removes what THIS run created (users cascade to their bookings; then test flights), plus anything test-made that is
+ * over a day old (left behind by a crashed run). Other runs' fresh data is never touched.
+ */
 export async function cleanup() {
-  await pool.query(`DELETE FROM "user" WHERE email LIKE 't-%@test.local'`);
-  await pool.query(`DELETE FROM flights WHERE id LIKE 'T-%'`);
+  await pool.query(`DELETE FROM "user" WHERE email LIKE $1 OR (email LIKE 't-%@test.local' AND "createdAt" < now() - interval '1 day')`, [`t-${RUN_ID}-%@test.local`]);
+  await pool.query(`DELETE FROM flights WHERE id LIKE $1 OR (id LIKE 'T-%' AND departs_at < now() - interval '1 day')`, [`T-${RUN_ID}-%`]);
   await pool.end();
 }

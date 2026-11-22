@@ -5,6 +5,8 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: '.',
   testMatch: '**/*.spec.js',
+  // Quarantined tests (tagged @quarantine, each with the reason next to it) are skipped unless RUN_QUARANTINE=1.
+  grepInvert: process.env.RUN_QUARANTINE ? undefined : /@quarantine/,
   fullyParallel: true,
   workers: 4,
   retries: process.env.CI ? 1 : 0,

@@ -1,8 +1,9 @@
 import { newUser, PASSWORD } from '../api/helpers/factory.js';
+import { userEmail } from '../api/helpers/run.js';
 import { expect, test } from './fixtures.js';
 
 test('sign up through the form signs the user in', async ({ page }) => {
-  const email = `t-${Date.now().toString(36)}${Math.random().toString(16).slice(2, 6)}@test.local`;
+  const email = userEmail();
   await page.goto('/login?mode=signup');
   await expect(page.getByRole('heading', { name: /Create your SkyBook account/ })).toBeVisible();
   await page.getByLabel('Name').fill('Grace Hopper');

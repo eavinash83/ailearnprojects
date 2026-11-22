@@ -1,26 +1,31 @@
 // Starts the app against the TEST database for API and E2E runs. Never reads .env, never touches production.
 import { spawn } from 'node:child_process';
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { parseEnv } from 'node:util';
 import { checkTestDatabase } from '../../tests/api/helpers/guard.js';
 
 export async function startTestServer() {
   const port = process.env.TEST_PORT || '3200';
-  if (!fs.existsSync('.env.test')) {
-    console.error('Missing .env.test (DATABASE_URL of the Neon test branch + BETTER_AUTH_SECRET).');
-    process.exit(1);
-  }
   if (!fs.existsSync('dist/index.html')) {
     console.error('No dist/ build. Run "npm run build" first (the server serves it).');
     process.exit(1);
   }
-  const fileEnv = parseEnv(fs.readFileSync('.env.test', 'utf8'));
+  // Locally: .env.test. In CI there is no file; the same values come from TEST_DATABASE_URL / TEST_BETTER_AUTH_SECRET.
+  const fileEnv = fs.existsSync('.env.test')
+    ? parseEnv(fs.readFileSync('.env.test', 'utf8'))
+    : { DATABASE_URL: process.env.TEST_DATABASE_URL, BETTER_AUTH_SECRET: process.env.TEST_BETTER_AUTH_SECRET || crypto.randomBytes(24).toString('hex') };
+  if (!fileEnv.DATABASE_URL) {
+    console.error('No test database: create .env.test (DATABASE_URL + BETTER_AUTH_SECRET) or set TEST_DATABASE_URL.');
+    process.exit(1);
+  }
   checkTestDatabase(fileEnv.DATABASE_URL); // exits if it looks like production
 
   // Explicit env so nothing from the caller's shell or .env leaks in.
   const env = {
     ...process.env,
     ...fileEnv,
+    RUN_ID: process.env.RUN_ID || crypto.randomBytes(3).toString('hex'), // tags this run's test data (see tests/api/helpers/run.js)
     NODE_ENV: 'development', // not 'test': Better Auth disables its Origin/CSRF check when NODE_ENV=test
     PORT: port,
     BETTER_AUTH_URL: `http://localhost:${port}`,
@@ -52,6 +57,8 @@ export async function startTestServer() {
 
   return {
     env,
+    /** Error/warn lines the app logged (for diagnosing a failed run). */
+    errorLog: () => log.split(/\r?\n/).filter((l) => /"level":"error"/.test(l)).join('\n'),
     // Deletes everything the tests created, then stops the server.
     async stop() {
       Object.assign(process.env, env);

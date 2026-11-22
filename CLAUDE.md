@@ -22,6 +22,13 @@ the original design choices.
   **test branch** from `.env.test` (gitignored; needs `DATABASE_URL` and `BETTER_AUTH_SECRET`) and refuse to run if that URL matches
   `.env`. Tests create their own users (`t-*@test.local`) and flights (`T-*`) and delete them afterwards. The test server runs with
   `NODE_ENV=development`, not `test`, because Better Auth skips its Origin/CSRF check when `NODE_ENV=test`.
+  Test data is tagged with a per-run `RUN_ID` (`tests/api/helpers/run.js`), so overlapping runs on one test database never delete each
+  other's data. In CI there is no `.env.test`: the runner reads the `TEST_DATABASE_URL` secret instead (`.github/workflows/ci-cd.yml`,
+  jobs `api-tests` and `e2e-tests`; `deploy` needs both).
+- Quarantined tests: API ones use `{ todo: ... }` (run, reported, never fail the run); Playwright ones are tagged `@quarantine` and
+  skipped unless `RUN_QUARANTINE=1`. Reason: the first requests after the Neon test compute has been idle (cold start) occasionally get a
+  500 from the app server under many parallel sign-ups/bookings. Each quarantined test has the reason and the condition for removing it
+  in a comment. Remove the marker once the server retries or tolerates a cold database connection.
 - Windows: run `npm run build` from a shell whose path has an upper-case drive letter (`C:\dev\...`). From `c:\dev\...` Vite can bundle
   one module twice (two `ToastContext`s), so the built app breaks on confirming a booking while `npm run dev` looks fine.
   `test:e2e` builds from the canonical path itself.

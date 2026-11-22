@@ -2,8 +2,9 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { Client } from './helpers/client.js';
 import { PASSWORD, newUser } from './helpers/factory.js';
+import { userEmail } from './helpers/run.js';
 
-const email = () => `t-${Math.random().toString(16).slice(2)}@test.local`;
+const email = userEmail;
 
 test('sign-up creates an account and a session cookie', async () => {
   const c = new Client();

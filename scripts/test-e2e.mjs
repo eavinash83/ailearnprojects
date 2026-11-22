@@ -22,6 +22,10 @@ try {
 } catch (err) {
   console.error(err.message);
 } finally {
+  if (code !== 0 && ts) {
+    const errs = ts.errorLog();
+    if (errs) console.error(`\n--- app server error log (this run) ---\n${errs.slice(-6000)}`);
+  }
   await ts?.stop();
 }
 process.exit(code);
