@@ -5,6 +5,28 @@ import fs from 'node:fs';
 import { parseEnv } from 'node:util';
 import { checkTestDatabase } from '../../tests/api/helpers/guard.js';
 
+// Neon suspends an idle compute and the first connections after that can fail for a few seconds. Wake it, and prove it
+// accepts several parallel connections, before the app and the tests start (otherwise early tests fail on a cold database).
+async function warmDatabase(url) {
+  const { Pool } = await import('@neondatabase/serverless');
+  const pool = new Pool({ connectionString: url, max: 8 });
+  pool.on('error', () => {});
+  const deadline = Date.now() + 90_000;
+  for (;;) {
+    try {
+      await Promise.all(Array.from({ length: 8 }, () => pool.query('SELECT 1')));
+      break;
+    } catch (e) {
+      if (Date.now() > deadline) {
+        await pool.end().catch(() => {});
+        throw new Error(`Test database did not wake up within 90s: ${e?.message ?? 'connection error'}`);
+      }
+      await new Promise((r) => setTimeout(r, 2000));
+    }
+  }
+  await pool.end().catch(() => {});
+}
+
 export async function startTestServer() {
   const port = process.env.TEST_PORT || '3200';
   if (!fs.existsSync('dist/index.html')) {
@@ -20,6 +42,7 @@ export async function startTestServer() {
     process.exit(1);
   }
   checkTestDatabase(fileEnv.DATABASE_URL); // exits if it looks like production
+  await warmDatabase(fileEnv.DATABASE_URL);
 
   // Explicit env so nothing from the caller's shell or .env leaks in.
   const env = {

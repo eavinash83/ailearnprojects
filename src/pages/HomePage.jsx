@@ -68,6 +68,9 @@ export default function HomePage() {
 
   return (
     <div className="container">
+      <div className="announce" role="note">
+        <span aria-hidden>🚀</span> Release 2: shipped automatically by our CI/CD pipeline. Tested, then deployed.
+      </div>
       <section className="hero hero-search">
         <div>
           <h1>{DOMAIN.tagline}</h1>
